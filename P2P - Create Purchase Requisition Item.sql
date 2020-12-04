@@ -1,0 +1,75 @@
+-- Query No: 1
+OR_CREATE_PR =
+SELECT DISTINCT
+    E."_CASE_KEY" AS "_CASE_KEY" 
+    ,E."MANDT" AS "MANDT"
+	,E."EBELN" AS "EBELN"
+	,E."EBELP" AS "EBELP"
+    ,'AV: ' || CASE 
+        WHEN 
+            E."BSART" IN ('ZEC2', 'EC2') THEN 'Original: Lege BANF in SRM an' 
+        WHEN
+        		EBAN."ERNAM" IN ('P2ARFC100', 'UC4BTCH') THEN 'Original: Lege BANF in APO an'
+        ELSE 
+            'Lege BANF Position an' 
+    END AS "ACTIVITY_DE"
+    ,'AV: ' || CASE 
+        WHEN 
+            E."BSART" IN ('ZEC2', 'EC2') THEN 'Original: Create Purchase Requisition Item in SRM' 
+        WHEN
+        		EBAN."ERNAM" IN ('P2ARFC100', 'UC4BTCH') THEN 'Original: Create Purchase Requisition Item in APO'
+        ELSE 
+            'Create Purchase Requisition Item' 
+    END AS "ACTIVITY_EN" 
+    ,CASE 
+        WHEN COALESCE(TRIM(CDHDR."UDATE"), '') <> '' AND CDHDR."UDATE" <> '00000000'
+            THEN CAST(CAST(CDHDR."UDATE" AS DATE) || ' ' || CAST(CDHDR."UTIME" AS TIME) AS TIMESTAMP)
+        ELSE EBAN."BADAT"
+    END AS "EVENTTIME"
+    ,10 AS "_SORTING" 
+    --,EBAN."ERNAM" AS "USER_NAME" 
+    ,USR02."USTYP" AS "USER_TYPE" 
+    ,NULL AS"CHANGED_TABLE"
+    ,NULL AS"CHANGED_TABLE_TEXT_DE"
+    ,NULL AS"CHANGED_TABLE_TEXT_EN"
+    ,NULL AS"CHANGED_FIELD"
+    ,NULL AS"CHANGED_FIELD_TEXT_DE"
+    ,NULL AS"CHANGED_FIELD_TEXT_EN"
+    ,NULL AS"CHANGED_FROM"
+    ,NULL AS"CHANGED_TO" 
+    ,NULL AS"CHANGED_FROM_FLOAT"
+    ,NULL AS"CHANGED_TO_FLOAT"
+    ,NULL AS"CHANGE_NUMBER"
+    ,NULL AS"TRANSACTION_CODE"
+    ,NULL AS"_ORIGIN_SYS"
+    ,NULL AS"LSLCODLSB"
+    ,NULL AS"KOBCDOBNB"
+    ,NULL AS"KOBERD"
+    ,NULL AS"POBCOD"
+FROM 
+    :TMP_P2P_PREV_EKKO_EKPO AS E
+    JOIN "LAKE"."EBAN" AS EBAN ON 1=1
+        AND EBAN."MANDT" = E."PREV_MANDT" 
+        AND EBAN."BANFN" = E."BANFN" 
+        AND EBAN."BNFPO" = E."BNFPO" 
+    LEFT JOIN "LAKE"."CDPOS" AS CDPOS ON 1=1 
+        AND CDPOS."MANDANT" = E."PREV_MANDT"
+        AND CDPOS."TABKEY" = E."TABKEY_EBAN"
+        AND CDPOS."TABNAME" = 'EBAN'
+        AND CDPOS."CHNGIND" = 'I'
+        AND CDPOS."OBJECTCLAS" = 'BANF'
+    LEFT JOIN "LAKE"."CDHDR" AS CDHDR ON 1=1
+        AND CDPOS."MANDANT" = CDHDR."MANDANT" 
+        AND CDPOS."CHANGENR" = CDHDR."CHANGENR"
+    LEFT JOIN "LAKE"."USR02" AS USR02 ON 1=1
+        AND EBAN."MANDT" = USR02."MANDT"
+        AND EBAN."ERNAM" = USR02."BNAME"
+    LEFT JOIN "LAKE"."T161T" AS T161T ON 1=1
+		AND E."MANDT" = T161T."MANDT"
+		AND E."BSART" = T161T."BSART"
+		AND E."BSTYP" = T161T."BSTYP"
+		AND T161T."SPRAS" = 'E'
+WHERE 1=1
+    AND COALESCE(TRIM(EBAN."EBELN"), '') <> ''
+    AND E."BSTYP" in ('F','K')
+;
